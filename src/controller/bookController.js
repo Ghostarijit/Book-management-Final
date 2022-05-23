@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
 const userModel = require("../model/userModel")
 const bookModel = require("../model/bookModel")
-const aws= require("aws-sdk")
-const multer= require("multer");
+const aws = require("aws-sdk")
+const multer = require("multer");
+const { json } = require('express/lib/response');
 
 
 // s3 and cloud stodare
@@ -18,67 +19,58 @@ const multer= require("multer");
 // -how to write promise:- wrap your entire code inside: "return new Promise( function(resolve, reject) { "...and when error - return reject( err )..else when all ok and you have data, return resolve (data)
 
 aws.config.update({
-    accessKeyId: "AKIAY3L35MCRVFM24Q7U",
-    secretAccessKeyId: "qGG1HE0qRixcW1T1Wg1bv+08tQrIkFVyDFqSft4J",
+    accessKeyId: "AKIAY3L35MCRUJ6WPO6J",
+    secretAccessKey: "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",
     region: "ap-south-1"
 })
 
-let uploadFile= async ( file) =>{
-   return new Promise( function(resolve, reject) {
-    // this function will upload file to aws and return the link
-    let s3= new aws.S3({apiVersion: '2006-03-01'}); // we will be using the s3 service of aws
+let uploadFile = async (file) => {
+    return new Promise(function (resolve, reject) {
+        // this function will upload file to aws and return the link
+        let s3 = new aws.S3({ apiVersion: '2006-03-01' }); // we will be using the s3 service of aws
 
-    var uploadParams= {
-        ACL: "public-read",
-        Bucket: "classroom-training-bucket",  //HERE
-        Key: "abc/" + file.originalname, //HERE 
-        Body: file.buffer
-    }
-
-
-    s3.upload( uploadParams, function (err, data ){
-        if(err) {
-            return reject({"error": err})
+        var uploadParams = {
+            ACL: "public-read",
+            Bucket: "classroom-training-bucket",  //HERE
+            Key: "abc/" + file.originalname, //HERE 
+            Body: file.buffer
         }
-        console.log(data)
-        console.log("file uploaded succesfully")
-        return resolve(data.Location)
+
+
+        s3.upload(uploadParams, function (err, data) {
+            if (err) {
+                return reject({ "error": err })
+            }
+            console.log(data)
+            console.log("file uploaded succesfully")
+            return resolve(data.Location)
+        })
+
+        // let data= await s3.upload( uploadParams)
+        // if( data) return data.Location
+        // else return "there is an error"
+
     })
-
-    // let data= await s3.upload( uploadParams)
-    // if( data) return data.Location
-    // else return "there is an error"
-
-   })
 }
 
-const upload = async function(req,res){
-    
-    let files= req.files
-    if(files && files.length>0){
-        //upload to s3 and get the uploaded link
-        // res.send the link back to frontend/postman
-        let uploadedFileURL= await uploadFile( files[0] )
-        res.status(201).send({msg: "file uploaded succesfully", data: uploadedFileURL})
-    }
-    else{
-        res.status(400).send({ msg: "No file found" })
-    }
-}
+
 
 const createBooks = async function (req, res) {
     try {
-        const data = req.body
+        const data = JSON.parse(JSON.stringify(req.body))
+
+        console.log(data)
         //  data validation  
 
-       
-      
 
-    // Book creation
+
+
+        // Book creation
 
         if (!data || Object.keys(data).length === 0) return res.status(400).send({ status: false, msg: "plz enter some data" })
 
         let { title, userId, excerpt, ISBN, category, subcategory, reviews, releasedAt, isDeleted } = data
+        console.log(typeof data.ISBN)
         // Book is same Book or not
         if (typeof ISBN !== "string") {
             return res.status(400).send({ status: false, msg: "ISBN datatype should be string" })
@@ -96,7 +88,7 @@ const createBooks = async function (req, res) {
         if (typeof userId !== "string") {
             return res.status(400).send({ status: false, msg: "userId datatype should be string" })
         }
-        
+
         let idCheck = mongoose.isValidObjectId(userId)
         userId = userId?.trim()
         //console.log(idCheck)
@@ -107,12 +99,12 @@ const createBooks = async function (req, res) {
             return res.status(404).send({ status: false, msg: "this user is not present." })
         }
         //  accessing the payload authorId from request
-        let token = req["userId"]
+        //  let token = req["userId"]
 
         //  authorization
-        if (token != userId) {
-            return res.status(403).send({ status: false, msg: "You are not authorized to access this data" })
-        }
+        //  if (token != userId) {
+        //   return res.status(403).send({ status: false, msg: "You are not authorized to access this data" })
+        // }
         //console.log(title)
 
         // title validation
@@ -140,6 +132,7 @@ const createBooks = async function (req, res) {
         if (!ISBN || ISBN === undefined) {
             return res.status(400).send({ status: false, msg: "ISBN is not given" })
         }
+        console.log(typeof ISBN)
         if (typeof ISBN !== "string") {
             return res.status(400).send({ status: false, msg: "ISBN datatype should be string" })
         }
@@ -188,11 +181,12 @@ const createBooks = async function (req, res) {
 
         // subcategory validation
         if (!subcategory) return res.status(400).send({ status: false, msg: "subcategory should be present" })
-
+        data.subcategory = data.subcategory.split(",")
+        console.log(data.subcategory)
         if (subcategory) {
-            if (!Array.isArray(subcategory)) return res.status(400).send({ status: false, msg: "subcategory should be array of strings" })
+            if (!Array.isArray(data.subcategory)) return res.status(400).send({ status: false, msg: "subcategory should be array of strings" })
 
-            if (subcategory.some(sub => typeof sub === "string" && sub.trim().length === 0)) {
+            if (data.subcategory.some(sub => typeof sub === "string" && sub.trim().length === 0)) {
                 return res.status(400).send({ status: false, message: " subcategory should not be empty or with white spaces" })
             }
             const subtrim = data.subcategory.map(element => {
@@ -205,11 +199,24 @@ const createBooks = async function (req, res) {
         }
         console.log(data)
 
+        // book cover 
+        let files = req.files
+        if (files && files.length > 0) {
+            //upload to s3 and get the uploaded link
+            // res.send the link back to frontend/postman
+            let uploadedFileURL = await uploadFile(files[0])
+            data.bookCover = uploadedFileURL
+            // Book Creation
+            const Book = await bookModel.create(data)
+            // return res.status(201).send({ status: true, data: Book })
+            res.status(201).send({ msg: "Book Cover uploaded succesfully and Book Creation Successfull", Data: Book })
+        }
+        else {
+            res.status(400).send({ msg: "No bookCover found" })
+        }
 
 
-        // Book Creation
-        const Book = await bookModel.create(data)
-        return res.status(201).send({ status: true, data: Book })
+        
     } catch (err) {
         res.status(500).send({ status: "error", error: err.message })
     }
@@ -218,5 +225,3 @@ const createBooks = async function (req, res) {
 
 
 module.exports.createBooks = createBooks
-
-module.exports.upload = upload

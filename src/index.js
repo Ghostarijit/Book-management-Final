@@ -8,6 +8,7 @@ const { AppConfig } = require('aws-sdk');
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+app.use( multer().any())
 
 mongoose.connect("mongodb+srv://arijit8637:WTqiGxjIFMSg5nxn@cluster0.u6fy9.mongodb.net/project-Book-management?retryWrites=true&w=majority", {
         useNewUrlParser: true
@@ -18,7 +19,7 @@ mongoose.connect("mongodb+srv://arijit8637:WTqiGxjIFMSg5nxn@cluster0.u6fy9.mongo
 
 app.use('/', route);
 
-app.use( multer().any())
+
 
 
 app.listen(process.env.PORT || 3000, function() {

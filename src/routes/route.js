@@ -19,7 +19,7 @@ router.post("/login", loginController.loginUser)
 
 router.post("/books",  post.createBooks)
 
-router.post("/uplod",  post.upload)
+
 
 router.get("/books", get.getBooks)
 

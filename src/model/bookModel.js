@@ -54,6 +54,9 @@ const bookSchema = new mongoose.Schema({
         // default: Date.now(),
         required: true
     },
+    bookCover:{
+        type:String
+    }
 
 
 
