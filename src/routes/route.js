@@ -17,7 +17,9 @@ router.post("/register", user.createuser)
 
 router.post("/login", loginController.loginUser)
 
-router.post("/books", middleWare.validateToken, post.createBooks)
+router.post("/books",  post.createBooks)
+
+router.post("/uplod",  post.upload)
 
 router.get("/books", get.getBooks)
 
